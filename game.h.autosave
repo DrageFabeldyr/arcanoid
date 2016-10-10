@@ -1,0 +1,50 @@
+#ifndef GAME_H
+#define GAME_H
+
+#include <QWidget>
+#include <QGraphicsView>
+#include <QGraphicsScene>
+#include <QGraphicsItem>
+#include <QTimer>
+#include <windows.h>
+
+namespace Ui {
+class game;
+}
+
+class game : public QWidget
+{
+    Q_OBJECT
+
+public:
+    explicit game(QWidget *parent = 0);
+    ~game();
+
+private:
+    QGraphicsScene *scene; // сцена
+    QGraphicsView *grview;
+    QTimer *timer; // игровой таймер
+    Ui::game *ui;
+
+    QGraphicsRectItem *player; // игрок
+    QGraphicsEllipseItem *ball; // мячик
+
+    int player_height = 10; // толщина игрока
+    int player_width = 100; // ширина игрока
+    int ball_size = 10;     // диаметр шарика
+
+    int ball_speed = 5;     // скорость шарика
+    int ball_x_speed;       // горизонатльная скорость шарика
+    int ball_y_speed;       // вертикальная скорость шарика
+    int player_speed = 10;  // скорость перемещения игрока
+    
+    int points = 0;         // количество заработанных очков
+    int bricks_num = 0;     // количество кирпичиков на экране
+    int max_bricks_num = 10;// максимальное количество кирпичиков на экране
+    int level_num = 1;      // номер уровня
+
+private slots:
+    void onTimer();
+};
+
+#endif // GAME_H
