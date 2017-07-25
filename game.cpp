@@ -14,6 +14,39 @@ game::game(QWidget *parent) : QWidget(parent)//, ui(new Ui::game)
     scene = new QGraphicsScene(QRectF(0, 0, 800, 600));
     grview = new QGraphicsView(scene, this);
 
+
+    // компоновка меню
+    menu = new QWidget(grview);
+
+    for (int i = 0; i < menu_lines; i++)
+    {
+        QLabel *menu_cursor_line = new QLabel;
+        menu_cursor_line->setFont(f);
+        menu_cursor_lines.append(menu_cursor_line);
+        QLabel *menu_item_line = new QLabel;
+        menu_item_line->setFont(f);
+        menu_items_lines.append(menu_item_line);
+    }
+
+    menu_cursor_lines[0]->setText("➜");
+    menu_cursor_lines[1]->setText("");
+    menu_items_lines[1]->setText("ВЫХОД");
+
+    menu_cursor_layout = new QVBoxLayout;
+    menu_items_layout = new QVBoxLayout;
+    menu_layout = new QHBoxLayout;
+
+    menu_cursor_layout->setSpacing(20);
+    for (int i = 0; i < menu_cursor_lines.size(); i++)
+        menu_cursor_layout->addWidget(menu_cursor_lines[i]);
+    menu_items_layout->setSpacing(20);
+    for (int i = 0; i < menu_items_lines.size(); i++)
+        menu_items_layout->addWidget(menu_items_lines[i]);
+    menu_layout->addLayout(menu_cursor_layout);
+    menu_layout->addLayout(menu_items_layout);
+    menu->setLayout(menu_layout);
+    menu->setStyleSheet("background-color: Grey;");
+
     scene->setBackgroundBrush(QBrush(Qt::black)); // покраска сцены
 
     game_layout = new QVBoxLayout;   // игра
@@ -23,6 +56,7 @@ game::game(QWidget *parent) : QWidget(parent)//, ui(new Ui::game)
     game_layout->addWidget(grview);
     grview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     grview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
     hello_text = new QLabel;
     level_text = new QLabel;
     score_text = new QLabel;
@@ -56,10 +90,10 @@ game::game(QWidget *parent) : QWidget(parent)//, ui(new Ui::game)
     main_layout->setSizeConstraint(QLayout::SetFixedSize); // запрет изменения размеров
 
     // Создаем таймер для выхода из отрисовки сцены и запуска меню
-    create_timer = new QTimer();
-    connect(create_timer, SIGNAL(timeout()), this, SLOT(start_menu()));
-    create_timer->setInterval(100); // время запуска игры
-    create_timer->start();
+    menu_timer = new QTimer();
+    connect(menu_timer, SIGNAL(timeout()), this, SLOT(game_menu()));
+    menu_timer->setInterval(100); // время запуска игры
+    menu_timer->start();
     this->setFocus(); // чтобы ловились стрелки
 }
 
@@ -192,6 +226,48 @@ void game::create_level(QGraphicsScene *level_scene)
         j++;
     }
 }
+// работа с меню
+void game::game_menu()
+{
+    // расположение меню рисуется здесь, потому что до создания виджетов все размеры равны нулю
+    menu->setGeometry(grview->width()/2 - menu->width()/2, grview->height()/2 - menu->height()/2, menu->width(), menu->height());
+
+    if (!pause)
+        menu_items_lines[0]->setText("СТАРТ");
+    else
+        menu_items_lines[0]->setText("ДАЛЕЕ");
+
+
+        /*
+    if (keyboard_state[0] == true) // вверх
+    {
+        keyboard_state[0] = false;
+        if (current_menu_line > 0) // если есть пункты выше
+            current_menu_line--;    // смещаемся
+        // перерисовываем стрелочку
+        for (int i = 0; i < menu_lines; i++)
+            menu_cursor_lines[i]->setText("");
+        menu_cursor_lines[current_menu_line]->setText("➜");
+    }
+    if (keyboard_state[1] == true) // вниз
+    {
+        keyboard_state[1] = false;
+        if (current_menu_line < menu_items_lines.size() - 1) // если есть пункты ниже
+            current_menu_line++;    // смещаемся
+        // перерисовываем стрелочку
+        for (int i = 0; i < menu_lines; i++)
+            menu_cursor_lines[i]->setText("");
+        menu_cursor_lines[current_menu_line]->setText("➜");
+    }
+    if (keyboard_state[4] == true)
+    {
+        if (current_menu_line == 0)
+            start_game();
+        if (current_menu_line == 1)
+            end_game();
+    }
+*/
+}
 
 // запуск игры
 void game::start_game()
@@ -223,26 +299,19 @@ void game::start_game()
     connect(keypress_timer, SIGNAL(timeout()), this, SLOT(can_press_again()));
 }
 
+// функция разрешения повторного нажатия кнопки паузы
+void game::can_press_again()
+{
+    pause_timeout =  false;
+}
+
 // обработка "game over"а
 void game::end_game()
 {
     exit(0);
 }
 
-// функция разрешения повторного нажатия кнопки паузы
-void game::can_press_again()
-{
-    keypress_timeout =  false;
-}
-
-
-// работа с меню
-void game::start_menu()
-{
-    if ((keyboard_state[4] == true) && (!gameplay))
-        start_game();
-}
-
+// обработка нажатий клавиш
 bool game::event(QEvent *event)
 {
     if (event->type() == QEvent::KeyPress)
@@ -253,17 +322,78 @@ bool game::event(QEvent *event)
         qDebug() << keyEvent->nativeScanCode() << "native"; // вывод кода клавиши в окно вывода
 
         if (keyEvent->key() == 0x01000013) // up
+        {
             keyboard_state[0] = true;
+            if (current_menu_line > 0) // если есть пункты выше
+                current_menu_line--;    // смещаемся
+            // перерисовываем стрелочку
+            for (int i = 0; i < menu_lines; i++)
+                menu_cursor_lines[i]->setText("");
+            menu_cursor_lines[current_menu_line]->setText("➜");
+        }
         if (keyEvent->key() == 0x01000015) // down
+        {
             keyboard_state[1] = true;
+            if (current_menu_line < menu_items_lines.size() - 1) // если есть пункты ниже
+                current_menu_line++;    // смещаемся
+            // перерисовываем стрелочку
+            for (int i = 0; i < menu_lines; i++)
+                menu_cursor_lines[i]->setText("");
+            menu_cursor_lines[current_menu_line]->setText("➜");
+        }
         if (keyEvent->key() == 0x01000012) // left
             keyboard_state[2] = true;
         if (keyEvent->key() == 0x01000014) // right
             keyboard_state[3] = true;
         if ((keyEvent->key() == 0x01000004) || (keyEvent->key() == 0x01000005)) // enter || num-enter
+        {
             keyboard_state[4] = true;
+            if (!gameplay)
+            {
+                if (current_menu_line == 0)
+                {
+                    menu->hide();
+                    start_game();
+                }
+                if (current_menu_line == 1)
+                    end_game();
+            }
+
+            if (pause)
+            {
+                if (current_menu_line == 0)
+                {
+                    menu->hide();
+                    timer->start();
+                    pause = !pause;
+                    pause_timeout = true;            // устанавливаем запрещение на повторное нажатие, чтобы пауза случайно не "отжалась" сразу
+                    keypress_timer->start(1000);      // интервал, достаточный для гарантированного нажатия
+                }
+                if (current_menu_line == 1)
+                    end_game();
+            }
+        }
         if (keyEvent->key() == 0x01000008) // pause
+        {
+            if (!pause_timeout && gameplay)
+            {
+                if (!pause)
+                {
+                    timer->stop();
+                    menu->show();
+                    game_menu();
+                }
+                else
+                {
+                    timer->start();
+                    menu->hide();
+                }
+                pause = !pause;
+                pause_timeout = true;            // устанавливаем запрещение на повторное нажатие, чтобы пауза случайно не "отжалась" сразу
+                keypress_timer->start(1000);      // интервал, достаточный для гарантированного нажатия
+            }
             keyboard_state[5] = true;
+        }
         qDebug() << "key pressed";
     }
     if (event->type() == QEvent::KeyRelease)
@@ -275,6 +405,7 @@ bool game::event(QEvent *event)
         if (keyEvent->key() == 0x01000015) // down
             keyboard_state[1] = false;
         if (keyEvent->key() == 0x01000012) // left
+
             keyboard_state[2] = false;
         if (keyEvent->key() == 0x01000014) // right
             keyboard_state[3] = false;
@@ -286,60 +417,5 @@ bool game::event(QEvent *event)
         qDebug() << "key released";
     }
 
-
     return QWidget::event(event); // т.к. стандартная функция bool, надо что-то возвращать
 }
-
-/*
-void game::keyPressEvent(QKeyEvent *event)
-{
-    int key = event->key(); // event->key() - целочисленный код клавиши
-    qDebug() << event->key() << "key"; // вывод кода клавиши в окно вывода
-    qDebug() << event->nativeScanCode() << "native"; // вывод кода клавиши в окно вывода
-
-    if (gameplay)
-    {
-        /*
-        // обработка нажатия клавиш управления
-        if (key == Qt::Key_Left)
-        {
-            // Проверка столкновения игрока с левой стенкой
-            if (player->x() - player_speed > -1)
-                player->moveBy(-player_speed, 0);
-        }
-        if (key == Qt::Key_Right)
-        {
-            // Проверка столкновения игрока с правой стенкой
-            if (player->x() + player->rect().width() + player_speed < scene->width() + 1)
-                player->moveBy(player_speed, 0);
-        }
-        */
-
-/*
-        if (key == Qt::Key_Pause && !keypress_timeout)
-        {
-            if (ball_x_speed == 0)
-            {
-                ball_x_speed = ball_x_speed_old;
-                ball_y_speed = ball_y_speed_old;
-            }
-            else
-            {
-                ball_x_speed_old = ball_x_speed;
-                ball_y_speed_old = ball_y_speed;
-                ball_x_speed = 0;
-                ball_y_speed = 0;
-            }
-            keypress_timeout = true;
-        }
-    }
-    else
-    {
-        if (key == Qt::Key_Return)
-            start_game();
-    }
-
-    if (keypress_timeout)
-        keypress_timer->start(500); // допустимая частота нажатия клавиши паузы
-}
-*/

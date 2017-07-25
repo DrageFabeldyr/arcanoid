@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <qmath.h>
 #include <QKeyEvent>
+#include <QVector>          // для перемещения стрелки по меню
 
 namespace Ui {
 class game;
@@ -29,7 +30,7 @@ private:
     QGraphicsView *grview;
     QTimer *timer;                         // игровой таймер перерисовки
     QTimer *keypress_timer;  // таймер задержки повторной обработки нажатия паузы
-    QTimer *create_timer;                // таймер для выхода из процедуры создания формы и создания меню
+    QTimer *menu_timer;                // таймер для выхода из процедуры создания формы и создания меню
     //Ui::game *ui;
 
     QGraphicsRectItem *player;  // игрок
@@ -46,10 +47,19 @@ private:
     QLabel *speed_text;        // текст скорости шарика
     QLabel *bricks_text;        // текст оставшихся кирпичиков
     QFont f;
+    // элементы меню
+    QWidget *menu;             // окно меню
+    QVector <QLabel*> menu_cursor_lines;
+    QVector <QLabel*> menu_items_lines;
+    QHBoxLayout *menu_layout;   // основной
+    QVBoxLayout *menu_items_layout;
+    QVBoxLayout *menu_cursor_layout;
+    int menu_lines = 2; // количество строк меню
+    int current_menu_line = 0; // текущий выбранный элемент меню
 
     // переменные
     int player_height = 10;       // толщина игрока
-    int player_width = 200;      // ширина игрока
+    int player_width = 2000;      // ширина игрока
     int ball_size = 12;             // диаметр шарика
     int brick_height = 10;        // высота кирпичей
     int brick_h_spacing = 10;  // промежуток между кирпичами по вертикали
@@ -76,14 +86,15 @@ private:
      */
 
     // флаги
-    bool keypress_timeout = false;
+    bool pause = false;
+    bool pause_timeout = false;
     bool gameplay = false;  // 0 - меню, 1 - игра
 
 private slots:
     void onTimer(); // функция обновления экрана
     void can_press_again(); // разрешения повторного нажатия кнопки
     void create_level(QGraphicsScene *level_scene); // функция создания уровня
-    void start_menu(void); // функция вывода меню
+    void game_menu(void); // функция вывода меню
     void start_game(void);// функция выхода из игры
     void end_game(void);// функция выхода из игры
 
