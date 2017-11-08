@@ -2,6 +2,7 @@
 #include "ui_game.h"
 
 #include <QDebug>
+#include <QDir>
 
 game::game(QWidget *parent) : QWidget(parent)//, ui(new Ui::game)
 {
@@ -107,8 +108,8 @@ void game::onTimer()
     // если уровень пройден
     if (bricks.size() < 1)
     {
-        create_level(scene, level_num);
         level_value++;
+        create_level(scene, level_value);
         /*
         if (level_value > 1)
         {
@@ -169,6 +170,12 @@ void game::onTimer()
     if (ball->y() + ball->rect().height() + ball_y_speed > scene->height())
     {
         end_game();
+        /*
+        for (int j = 0; j < bricks.size(); j++)
+            bricks.at(j)->just_had_collision = false; // обнуляем показатели столкновения
+        player->just_had_collision = false;
+        ball_y_speed = -ball_y_speed;
+        */
     }
      // если ударяется в игрока - отлетает обратно
     if ((ball->collidesWithItem(player->body)) &&  (!player->just_had_collision)) // чтобы мячик не залипал в ракетке
@@ -299,18 +306,24 @@ void game::onTimer()
                 }
             }
         }
+    }
 
-        if (keyboard_state[2])
+    if (keyboard_state[2])
+    {
+        // Проверка столкновения игрока с левой стенкой
+        if (player->x - player_speed > -1)
         {
-            // Проверка столкновения игрока с левой стенкой
-            if (player->x - player_speed > -1)
-                player->body->moveBy(-player_speed, 0);
+            player->x -= player_speed;
+            player->body->moveBy(-player_speed, 0);
         }
-        if (keyboard_state[3])
+    }
+    if (keyboard_state[3])
+    {
+        // Проверка столкновения игрока с правой стенкой
+        if (player->x + player->body->rect().width() + player_speed < scene->width() + 1)
         {
-            // Проверка столкновения игрока с правой стенкой
-            if (player->x + player->body->rect().width() + player_speed < scene->width() + 1)
-                player->body->moveBy(player_speed, 0);
+            player->x += player_speed;
+            player->body->moveBy(player_speed, 0);
         }
     }
 
@@ -325,6 +338,9 @@ void game::onTimer()
 void game::create_level(QGraphicsScene *level_scene, int level)
 {
     int i, j;
+    bool level_data = false;
+    QString str = "";
+    QString level_str = "";
 
     int bricks_num = 16;
             /*
@@ -337,13 +353,47 @@ void game::create_level(QGraphicsScene *level_scene, int level)
     int border_spacing = (scene->width() - (brick_width + brick_w_spacing) * bricks_num + brick_w_spacing) / 2; // т.к. после последнего кубика отступ не нужен
 
     int bricks_map[bricks_num][bricks_num];  // карта уровня
+    QString level_map_file = qApp->applicationDirPath() + QDir::separator() + "level_maps";
+    QFile map_file(level_map_file);
 
-    for (j = 0; j < bricks_num; j++)
+    if (map_file.open(QIODevice::ReadOnly))
     {
-        for (i = 0; i < bricks_num / 2; i++)
+        while (!map_file.atEnd())
         {
-            bricks_map[j][i] = rand() % 5;
-            bricks_map[j][bricks_num - i - 1] = bricks_map[j][i]; // зеркальное отражение левой половины
+            str = map_file.readLine().simplified();
+            if (level_data) // присвоение ставим раньше, чтобы избежать строки со словом level
+                level_str += str;
+            if (str.contains(QString("level%1").arg(level)))
+            {
+                level_data = true;
+                level_str.clear();
+            }
+            if (str.isEmpty())
+                level_data = false;
+        }
+        level_str.simplified();
+        map_file.close();
+    }
+
+    if (!level_str.isEmpty())
+    {
+        for (j = 0; j < bricks_num; j++)
+        {
+            for (i = 0; i < bricks_num; i++)
+            {
+                bricks_map[j][i] = level_str.at(bricks_num * j + i).digitValue();
+            }
+        }
+    }
+    else // если карты уровня нет, тогда просто создаём зеркальную картинку
+    {
+        for (j = 0; j < bricks_num; j++)
+        {
+            for (i = 0; i < bricks_num / 2; i++)
+            {
+                bricks_map[j][i] = rand() % 5;
+                bricks_map[j][bricks_num - i - 1] = bricks_map[j][i]; // зеркальное отражение левой половины
+            }
         }
     }
 
@@ -386,7 +436,7 @@ void game::start_game()
     //ball_x_speed = /*0;/*/ball_speed;
     //ball_y_speed = /*0;/*/-ball_speed;
 
-    create_level(scene, level_num); // заполняем сцену кубиками
+    create_level(scene, level_value); // заполняем сцену кубиками
 
     // добавляем "игрока"
     player = new upgraded_brick;
@@ -403,7 +453,7 @@ void game::start_game()
     // Создаем игровой таймер для перерисовки сцены
     timer = new QTimer();
     connect(timer, SIGNAL(timeout()), this, SLOT(onTimer()));
-    timer->setInterval(1000 / (100 + 20 * speed)); // скорость обновления экрана
+    timer->setInterval(1000 / (50 * speed)); // скорость обновления экрана
     timer->start();
 
     // Создаём таймер для регулировки частоты нажатия кнопки паузы
@@ -520,7 +570,6 @@ bool game::event(QEvent *event)
         if (keyEvent->key() == 0x01000015) // down
             keyboard_state[1] = false;
         if (keyEvent->key() == 0x01000012) // left
-
             keyboard_state[2] = false;
         if (keyEvent->key() == 0x01000014) // right
             keyboard_state[3] = false;

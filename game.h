@@ -73,7 +73,7 @@ private:
 
     // переменные
     int player_height = 10; // толщина игрока
-    int player_width = 2000; // ширина игрока
+    int player_width = 200; // ширина игрока
     int ball_size = 10;     // диаметр шарика
     int brick_height = 10;        // высота кирпичей
     int brick_h_spacing = 10;   // промежуток между кирпичами по вертикали
@@ -88,9 +88,6 @@ private:
     double ball_y_speed_old = 0;     // для сохранения вертикальной скорости шарика
     int player_speed = 10;  // скорость перемещения игрока
     
-    int points = 0;         // количество заработанных очков
-    int level_num = 1;      // номер уровня
-
     int score_value = 0;       // количество заработанных очков
     int level_value = 1;        // номер уровня
 
