@@ -580,7 +580,7 @@ bool game::event(QEvent *event)
         if (keyEvent->key() == 0x20) // пробел
         {
             keyboard_state[6] = false;
-            if ((ball_x_speed  < 1) || (ball_y_speed  < 1))// если начало игры
+            if ((ball_x_speed == 0) || (ball_y_speed == 0)) // если начало игры
             {
                 ball_x_speed = 5;
                 ball_y_speed = -5;
