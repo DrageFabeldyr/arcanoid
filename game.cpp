@@ -308,7 +308,7 @@ void game::onTimer()
         }
     }
 
-    if (keyboard_state[2])
+    if ((keyboard_state[2]) && gameplay)
     {
         // Проверка столкновения игрока с левой стенкой
         if (player->x - player_speed > -1)
@@ -317,7 +317,7 @@ void game::onTimer()
             player->body->moveBy(-player_speed, 0);
         }
     }
-    if (keyboard_state[3])
+    if ((keyboard_state[3]) && gameplay)
     {
         // Проверка столкновения игрока с правой стенкой
         if (player->x + player->body->rect().width() + player_speed < scene->width() + 1)
@@ -432,7 +432,7 @@ void game::game_menu()
 // запуск игры
 void game::start_game()
 {
-    gameplay = true;
+    //gameplay = true;
     //ball_x_speed = /*0;/*/ball_speed;
     //ball_y_speed = /*0;/*/-ball_speed;
 
@@ -481,7 +481,7 @@ bool game::event(QEvent *event)
         QKeyEvent *keyEvent = (QKeyEvent *)event;
 
         qDebug() << keyEvent->key() << "key"; // вывод кода клавиши в окно вывода
-        qDebug() << keyEvent->nativeScanCode() << "native"; // вывод кода клавиши в окно вывода
+        //qDebug() << keyEvent->nativeScanCode() << "native"; // вывод кода клавиши в окно вывода
 
         if (keyEvent->key() == 0x01000013) // up
         {
@@ -510,7 +510,7 @@ bool game::event(QEvent *event)
         if ((keyEvent->key() == 0x01000004) || (keyEvent->key() == 0x01000005)) // enter || num-enter
         {
             keyboard_state[4] = true;
-            if (!gameplay)
+            if (!gameplay) // мы в стартовом меню
             {
                 if (current_menu_line == 0)
                 {
@@ -579,12 +579,13 @@ bool game::event(QEvent *event)
             keyboard_state[5] = false;
         if (keyEvent->key() == 0x20) // пробел
         {
-            keyboard_state[6] = false;
+            keyboard_state[6] = false; // блокируем пробел, потому что по его нажатию шарик вновь "стартует" с того места, где он сейчас находится
             if ((ball_x_speed == 0) || (ball_y_speed == 0)) // если начало игры
             {
                 ball_x_speed = 5;
                 ball_y_speed = -5;
                 player->just_had_collision = true;
+                gameplay = true;
             }
         }
 
