@@ -103,6 +103,7 @@ game::~game()
     //delete ui;
 }
 
+// функция обновления экрана
 void game::onTimer()
 {
     // если уровень пройден
@@ -110,37 +111,11 @@ void game::onTimer()
     {
         level_value++;
         create_level(scene, level_value);
-        /*
-        if (level_value > 1)
-        {
-            if (level_value % 2 != 0) // потихоньку поднимаем скорость каждый уровень
-            {
-                speed ++;
-                timer->setInterval(1000 / (100 + 20 * speed)); // скорость обновления экрана
-            }
-            else // увеличиваем скорость самого мячика
-            {
-                if (abs(ball_x_speed) < 10)
-                {
-                    if (ball_x_speed > 0)
-                        ball_x_speed++;
-                    else
-                        ball_x_speed--;
-                }
-                if (abs(ball_y_speed) < 10)
-                {
-                    if (ball_y_speed > 0)
-                        ball_y_speed++;
-                    else
-                        ball_y_speed--;
-                }
-            }
-        }
-        */
     }
 
     // обработка событий шарика
-    ball->moveBy(ball_x_speed, ball_y_speed); // двигать шарик
+    if (gameplay)
+        ball->moveBy(ball_x_speed, ball_y_speed); // двигать шарик
 
     // Проверка столкновения с левой стенкой
     if (ball->x() + ball_x_speed < 0)
@@ -185,48 +160,36 @@ void game::onTimer()
         player->just_had_collision = true;
 
         //int length_to_hit = abs((player->x() + player_width/2) - (ball->x() + ball_size/2)); // расстояние от центра ракетки до точки соприкосновения
-        //int length_to_hit = (player->x() + player_width/2) - (ball->x() + ball_size/2); // расстояние от центра ракетки до точки соприкосновения, справа +, слева -
+        int length_to_hit = (player->x + player_width/2) - (ball->x() + ball_size/2); // расстояние от центра ракетки до точки соприкосновения, справа +, слева -
         //qDebug() <<  length_to_hit;
 
-        // верхняя четверть дуги
+        // верхняя четверть дуги - это удар в игрока снизу?
         if (((ball->y() <= player->y + player_height) && (ball->y() + ball_size / 2 - ball_size / 2 * qSin(qDegreesToRadians(float(45))) >= player->y + player_height)) &&
                 ((ball->x() + ball_size / 2 + ball_size / 2 * qSin(qDegreesToRadians(float(45))) >= player->x) && (ball->x() + ball_size / 2 - ball_size / 2 * qSin(qDegreesToRadians(float(45))) <= player->x + player_width)))
         {
-            ball_y_speed = -ball_y_speed;
-            /*
-            if (ball_x_speed > 0)
-            {
-                ball_x_speed += ball_speed * (4 * length_to_hit / player_width);
-                // т.к. расстояние до точки касания максимум половина, при которой скорость по оси должна увеличиваться вдвое
-                ball_y_speed -= ball_y_speed * (1 - ball_speed/ball_x_speed);
-            }
-            else
-            {
-                ball_x_speed -= ball_speed * (4 * length_to_hit / player_width);
-                // т.к. расстояние до точки касания максимум половина, при которой скорость по оси должна увеличиваться вдвое
-                ball_y_speed -= ball_y_speed * (1 - ball_speed/ball_x_speed);
-            }
-            */
+            //ball_y_speed = -ball_y_speed;
+
+            // чтобы сделать изменяемый угол отскока нужно не по х скорость менять - тогда шарик будет пролетать насквозь многих предметов
+            // а по y менять скорость, чтобы он просто быстрее/медленнее поднимался
+            // причём не по отношению к старой, а постоянно одинаково от 1 в центре ракетки до пусть 0,5 с краю
+
+            koeff = 1 - fabs(length_to_hit)/player_width;
+            ball_y_speed = int(-ball_speed * koeff);
+            qDebug() << "ball_y_speed = " << ball_y_speed;
         }
         // нижняя четверть дуги
         else if (((ball->y() + ball_size >= player->y) && (ball->y() + ball_size / 2 + ball_size / 2 * qSin(qDegreesToRadians(float(45))) <= player->y)) &&
                 ((ball->x() + ball_size / 2 + ball_size / 2 * qSin(qDegreesToRadians(float(45))) >= player->x) && (ball->x() + ball_size / 2 - ball_size / 2 * qSin(qDegreesToRadians(float(45))) <= player->x + player_width)))
         {
-            ball_y_speed = -ball_y_speed;
-            /*
-            if (ball_x_speed > 0)
-            {
-                ball_x_speed -= ball_speed * (4 * length_to_hit / player_width);
-                // т.к. расстояние до точки касания максимум половина, при которой скорость по оси должна увеличиваться вдвое
-                ball_y_speed -= ball_y_speed * (1 - ball_speed/ball_x_speed);
-            }
-            else
-            {
-                ball_x_speed += ball_speed * (4 * length_to_hit / player_width);
-                // т.к. расстояние до точки касания максимум половина, при которой скорость по оси должна увеличиваться вдвое
-                ball_y_speed -= ball_y_speed * (1 - ball_speed/ball_x_speed);
-            }
-            */
+            //ball_y_speed = -ball_y_speed;
+
+            // чтобы сделать изменяемый угол отскока нужно не по х скорость менять - тогда шарик будет пролетать насквозь многих предметов
+            // а по y менять скорость, чтобы он просто быстрее/медленнее поднимался
+            // причём не по отношению к старой, а постоянно одинаково от 1 в центре ракетки до пусть 0,5 с краю
+
+            koeff = 1 - fabs(length_to_hit)/player_width;
+            ball_y_speed = int(-ball_speed * koeff);
+            qDebug() << "ball_y_speed = " << ball_y_speed;
         }
         // правая четверть дуги
         else if (((ball->y() + ball_size / 2 + ball_size / 2 * qSin(qDegreesToRadians(float(45))) >= player->y) && (ball->y() + ball_size / 2 - ball_size / 2 * qSin(qDegreesToRadians(float(45))) <= player->y + player_height)) &&
@@ -432,9 +395,8 @@ void game::game_menu()
 // запуск игры
 void game::start_game()
 {
-    //gameplay = true;
-    //ball_x_speed = /*0;/*/ball_speed;
-    //ball_y_speed = /*0;/*/-ball_speed;
+    //ball_x_speed = ball_speed;
+    //ball_y_speed = -ball_speed;
 
     create_level(scene, level_value); // заполняем сцену кубиками
 
@@ -480,7 +442,7 @@ bool game::event(QEvent *event)
     {
         QKeyEvent *keyEvent = (QKeyEvent *)event;
 
-        qDebug() << keyEvent->key() << "key"; // вывод кода клавиши в окно вывода
+        //qDebug() << keyEvent->key() << "key"; // вывод кода клавиши в окно вывода
         //qDebug() << keyEvent->nativeScanCode() << "native"; // вывод кода клавиши в окно вывода
 
         if (keyEvent->key() == 0x01000013) // up
@@ -510,12 +472,13 @@ bool game::event(QEvent *event)
         if ((keyEvent->key() == 0x01000004) || (keyEvent->key() == 0x01000005)) // enter || num-enter
         {
             keyboard_state[4] = true;
-            if (!gameplay) // мы в стартовом меню
+            if (start_menu) // мы в стартовом меню
             {
                 if (current_menu_line == 0)
                 {
                     menu->hide();
                     start_game();
+                    start_menu = false;
                 }
                 if (current_menu_line == 1)
                     end_game();
@@ -537,7 +500,7 @@ bool game::event(QEvent *event)
         }
         if (keyEvent->key() == 0x01000008) // pause
         {
-            if (!pause_timeout && gameplay)
+            if (!pause_timeout && !start_menu)
             {
                 if (!pause)
                 {
@@ -559,7 +522,7 @@ bool game::event(QEvent *event)
         }
         if (keyEvent->key() == 0x20) // пробел
             keyboard_state[6] = true;
-        qDebug() << "key pressed";
+        //qDebug() << "key pressed";
     }
     if (event->type() == QEvent::KeyRelease)
     {
@@ -580,16 +543,17 @@ bool game::event(QEvent *event)
         if (keyEvent->key() == 0x20) // пробел
         {
             keyboard_state[6] = false; // блокируем пробел, потому что по его нажатию шарик вновь "стартует" с того места, где он сейчас находится
-            if ((ball_x_speed == 0) || (ball_y_speed == 0)) // если начало игры
+            if (!start_menu && !gameplay) // если начало игры
             {
-                ball_x_speed = 5;
-                ball_y_speed = -5;
+                ball_x_speed = ball_speed;
+                ball_y_speed = -ball_speed;
                 player->just_had_collision = true;
                 gameplay = true;
+                qDebug() << "ball_x_speed = " << ball_x_speed << ";  ball_y_speed = " << ball_y_speed;
             }
         }
 
-        qDebug() << "key released";
+        //qDebug() << "key released";
     }
 
     return QWidget::event(event); // т.к. стандартная функция bool, надо что-то возвращать
